@@ -7,6 +7,7 @@ This plan provides a structured approach to migrate the monolith to microservice
    - **Database Analysis**: Document all tables, relationships, and data access patterns. Identify potential challenges in breaking the database.
    - **Non-functional Requirements**: Define SLAs, scalability, security, and compliance requirements.
    - **Migration Goals**: Set clear milestones and success metrics (e.g., reduce latency, improve deployment frequency).
+   - **Risk Assessment & Rollback Strategy**: identify risks, dependencies, and rollback approach.
 ## 2. Architecture Design
    - **Microservices Architecture**: Each service is independently deployable, scalable, and focused on a single business capability.
    - **Data Management**: Each service owns its data. Use events for inter-service communication to maintain data consistency.
@@ -22,31 +23,39 @@ This plan provides a structured approach to migrate the monolith to microservice
    - **API Gateway**: Configure routes to microservices and the monolith.
    - **Service Discovery**: Use AWS Cloud Map for service discovery if not using API Gateway for routing.
    - **CI/CD**: Set up pipelines for each microservice to automate testing and deployment.
-## 4. Migration Process (Strangler Fig Pattern)
+   - **Infrastructure as Code (IaC)**: Terraform/CloudFormation to ensure reproducible environments.
+## 4. Migration & Data Strategy (Strangler Fig Pattern)
    - **Lift and Shift**: Deploy the monolith to AWS (EC2 or ECS) to reduce latency and simplify the migration.
    - **Extract Module**: Choose a low-risk, loosely coupled module to extract first.
    - **Implement Microservice**: Develop the microservice in .NET Core, containerize it, and set up its own database.
-   - **Data Migration**: Use dual writes or CDC to keep the monolith's database and the new service's database in sync.
+   - **Data Migration Options**: 
+     - **Dual Writes**: Write to both the old and new databases simultaneously.  
+     - **Change Data Capture (CDC)**: Use AWS DMS or Debezium to capture changes from the monolith's database and apply them to the new database.  
    - **Traffic Routing**: Use API Gateway to route specific requests to the new microservice. Gradually shift traffic.
-   - **Decommission**: Once the microservice is stable and the monolith's module is no longer used, remove it from the monolith.
-## 5. Data Migration Strategy
-   - **Dual Writes**: Write to both the old and new databases simultaneously. This allows for a gradual transition but requires handling failures to avoid data inconsistency.
-   - **Change Data Capture (CDC)**: Use AWS DMS or Debezium to capture changes from the monolith's database and apply them to the new database.
    - **Data Validation**: Use scripts to compare data between old and new databases to ensure correctness.
-   - **Cutover Plan**: Plan for a period of minimal activity to perform the final data sync and switch over.
-## 6. Testing Strategy
+   - **Rollback Plan per Module**: Define safe rollback criteria for each service extraction.
+## 5. Testing Strategy
    - **Unit Tests**: For each service.
    - **Integration Tests**: Test interactions between services and with databases.
    - **End-to-End Tests**: Test critical user journeys across the system.
    - **Performance Tests**: Load test each service and the system as a whole.
    - **Chaos Tests**: Introduce failures to test resilience.
-## 7. Go-Live and Post-Migration
-   - **Cutover**: Execute the final data migration and switch traffic to the new system.
-   - **Monitoring**: Closely monitor system health and performance.
-   - **Validation**: Ensure all functionality is working as expected.
-   - **Optimization**: Tune performance and cost based on real-world usage.
-## 8. Operations and Maintenance
-   - **Logging and Monitoring**: Use CloudWatch for logs and metrics, X-Ray for tracing.
-   - **Auto-scaling**: Configure auto-scaling for each service based on load.
-   - **Backup and DR**: Regular backups and a disaster recovery plan.
-   - **Cost Optimization**: Regularly review and optimize AWS resource usage.
+## 6. Cutover
+   - **Final Sync**: Plan for a period of minimal activity to perform the final data sync.
+   - **Switch Over**: Direct all traffic to microservices instead of the monolith.
+   - **Validation**: Verify functionality and data consistency immediately after cutover.
+## 7. Go-Live & Stabilization
+   - **Post-Cutover Monitoring**: Closely monitor system health, latency, and error rates immediately after switch-over.
+   - **Functional Validation**: Ensure all services and user flows are working as expected in production.
+   - **Performance Tuning**: Adjust resource allocation and service configurations based on real-world load.
+   - **Early Cost Review**: Validate initial AWS cost assumptions against actual usage.
+   - **Retire Monolith Components**: Remove unused modules from the monolith once fully replaced.
+   - **Shutdown Legacy Systems**: Decommission infrastructure and databases no longer in use.
+   - **Post-Mortem Review**: Document lessons learned and update best practices for future migrations.
+## 8. Operations & Maintenance
+   - **Observability**: Centralized logging (CloudWatch), metrics, and distributed tracing (X-Ray).
+   - **Auto-scaling**: Configure auto-scaling for each service based on load and demand patterns.
+   - **Resilience**: Regular backups, disaster recovery drills, and chaos testing in production-like environments.
+   - **Cost Optimization**: Ongoing review of AWS resource usage, rightsizing, and reserved instances where applicable.
+   - **Runbooks & On-call**: Maintain incident response playbooks and ensure proper on-call coverage.
+   - **Continuous Improvement**: Collect feedback, measure SLAs, and refine processes.
